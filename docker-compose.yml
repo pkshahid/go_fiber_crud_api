@@ -1,0 +1,54 @@
+version: "3"
+
+networks:
+    generic-network:
+        external:
+            name: generic-network
+
+services:
+  app:
+    build: 
+      context: ./go_fiber
+    image: go_fiber_app:latest
+    env_file:
+        - ./go_fiber/.env
+
+    volumes:
+      - ./go_fiber/:/go/src/go_fiber
+    ports:
+      - 8000:8000
+    container_name: fiber-app
+    restart: always
+    depends_on:
+      - db
+    networks:
+      - generic-network
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./services/postgresql.conf:/etc/postgresql/postgresql.conf
+    env_file:
+      - ./services/.db_parameter
+    container_name: postgres-container
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    command:
+        postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - generic-network
+  adminer:
+    image: adminer
+    restart: always
+    command: php -S 0.0.0.0:8080 -t /var/www/html
+    depends_on: 
+      - db
+    container_name: adminer-container
+    ports:
+      - "8080:8080"
+    networks:
+      - generic-network
